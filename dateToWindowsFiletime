@@ -1,0 +1,81 @@
+[+] Objectif: Convertir une date/heure au format Windows Filetime (Timestamp)
+
+Date/heure à convertir: 4 décembre 2018 à 00h46:51 et 1036800 nanosecondes, heure de Montréal (fuseau horaire -5)
+
+==== Utilisation de Python 3 en ligne de commande ====
+
+>>> import datetime
+>>> from datetime import datetime
+
+# Nous ajoutons 5 heures à la date pour tenir compte du décalage horaire
+# Ici nous avons tronqué à 2018-12-04 05:46:51.001036 à la place de 2018-12-04 05:46:51.0010368
+# Explication: Python ne connaît pas les nanosecondes, il s'arrête aux microsecondes...
+# Il faudra donc adapter le code à notre situation pour tenir compte du 8 manquant à la fin
+
+#On convertit la date-heure au format chaîne de caractères (String) en format date 
+
+>>> datetime_object = datetime.strptime('2018-12-04 05:46:51.001036', '%Y-%m-%d %H:%M:%S.%f')
+
+#On calcule la différence entre la date-heure à convertir et la date du 1er janvier 1601 00 :00 :00.000000.
+# Explication : « A file time is a 64-bit value that represents the number of 100-nanosecond intervals that have elapsed since 12:00 A.M. January 1, 1601 Coordinated Universal Time (UTC).» (Source: Microsoft)
+
+>>> c = datetime_object-datetime.datetime(1601,1,1)
+
+#On converti la difference qui est en format date en float
+
+>>> from datetime import timedelta
+>>> d = c / timedelta (microseconds=1)
+
+#Fonction de conversion en hexadécimal. Source : Interactive Python
+
+>>> def toStr(n,base):
+...     convertString = "0123456789ABCDEF"
+...     if n < base:
+...             return convertString[n]
+...     else:
+...             return toStr(n//base,base) + convertString[n%base]
+...
+
+# On ajoute le 8 manquant à la fin pour avoir le bon résultat + conversion du float en int
+
+>>> f=int(d)*10+8
+
+# On affiche le Windows file time (sous forme d’entier)
+
+>>> print(f)
+131883760110010368              
+
+#Conversion de l’entier en base 16
+
+>>> g = toStr(int(f),16)
+
+# Vérifier qu’on a 8 octets (16 chiffres)
+
+>>> print(len(g))  
+15                 
+
+# Il nous manque un chiffre pour avoir de l’hexadécimal. 
+# On ajoute un 0 pour combler le chiffre manquant : hexadécimal grand-boutiste
+
+>>> h="0"+g       
+
+# Fonction de swap pour obtenir l’hexadécimal petit-boutiste
+
+>>> swapped="".join(reversed([h[i:i+2] for i in range(0, len(h), 2)]))
+
+# Windows file time (au format hexadécimal)
+
+>>> print(swapped)
+
+000000C1948BD401   
+
+Résultat obtenu vérifié à l’aide de 2 outils: The Time Lord et Decode
+
+Références:
+
+- Microsoft, File Times, https://docs.microsoft.com/en-us/windows/desktop/sysinfo/file-times
+- Sanderson Forensics (2010), A brief history of time stamps, http://www.sandersonforensics.com/forum/content.php?131-A-brief-history-of-time-stamps
+- Forensic Focus (2008), Convert date/time into hex, http://www.forensicfocus.com/Forums/viewtopic/t=2182/
+- Nintex (2015), Convert date/time format to Active Directory timestamp, https://community.nintex.com/community/build-your-own/blog/2015/08/14/convert-datetime-format-to-active-directory-timestamp
+- Uforia, timestamp.py, https://github.com/uforia/timestamp/blob/master/timestamp.py 
+- InteractivePython, Converting an Integer to a String in Any Base, https://interactivepython.org/courselib/static/pythonds/Recursion/pythondsConvertinganIntegertoaStringinAnyBase.html 
